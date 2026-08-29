@@ -1,0 +1,23 @@
+{
+  "name": "zcode-discord-rpc",
+  "version": "1.0.0",
+  "description": "Discord Rich Presence for ZCode: shows your current project, what the agent is doing (thinking, running tools, waiting for input) and session time in your Discord profile.",
+  "description_i18n": {
+    "en": "Discord Rich Presence for ZCode: shows your current project, what the agent is doing (thinking, running tools, waiting for input) and session time in your Discord profile.",
+    "ru": "Discord Rich Presence для ZCode: показывает текущий проект, чем занят агент (думает, запускает инструменты, ждёт ввода) и время сессии в профиле Discord.",
+    "zh-CN": "适用于 ZCode 的 Discord Rich Presence：在 Discord 个人资料中显示当前项目、代理当前活动与会话时长。"
+  },
+  "author": {
+    "name": "z3ntorra"
+  },
+  "license": "MIT",
+  "keywords": [
+    "discord",
+    "rich-presence",
+    "rpc",
+    "presence",
+    "status"
+  ],
+  "hooks": "hooks",
+  "commands": "commands"
+}

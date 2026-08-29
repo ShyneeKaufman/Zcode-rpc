@@ -1,0 +1,83 @@
+{
+  "description": "Discord Rich Presence hooks for ZCode. All handlers are read-only: they write a presence state file and never block tools.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "process",
+            "command": "node",
+            "args": ["${ZCODE_PLUGIN_ROOT}/hooks/rpc-hook.mjs"],
+            "timeoutMs": 5000,
+            "statusMessage": "discord-rpc: starting presence"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "process",
+            "command": "node",
+            "args": ["${ZCODE_PLUGIN_ROOT}/hooks/rpc-hook.mjs"],
+            "timeoutMs": 5000,
+            "statusMessage": "discord-rpc: thinking presence"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "process",
+            "command": "node",
+            "args": ["${ZCODE_PLUGIN_ROOT}/hooks/rpc-hook.mjs"],
+            "timeoutMs": 5000,
+            "statusMessage": "discord-rpc: tool presence"
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "hooks": [
+          {
+            "type": "process",
+            "command": "node",
+            "args": ["${ZCODE_PLUGIN_ROOT}/hooks/rpc-hook.mjs"],
+            "timeoutMs": 5000,
+            "statusMessage": "discord-rpc: failure presence"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "process",
+            "command": "node",
+            "args": ["${ZCODE_PLUGIN_ROOT}/hooks/rpc-hook.mjs"],
+            "timeoutMs": 5000,
+            "statusMessage": "discord-rpc: permission presence"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "process",
+            "command": "node",
+            "args": ["${ZCODE_PLUGIN_ROOT}/hooks/rpc-hook.mjs"],
+            "timeoutMs": 5000,
+            "statusMessage": "discord-rpc: idle presence"
+          }
+        ]
+      }
+    ]
+  }
+}
