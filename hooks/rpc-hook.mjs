@@ -277,7 +277,7 @@ function buildPresence(event, payload, config, prevState) {
             break;
         case "Stop":
             tool = "";
-            auto = "Waiting for your input";
+            auto = task || "Waiting for your input";
             idle = true;
             break;
         default:
