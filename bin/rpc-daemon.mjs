@@ -59,7 +59,13 @@ function defaultConfigDir() {
 
 function readJson(filePath) {
     try {
-        const data = JSON.parse(fs.readFileSync(filePath, "utf8"));
+        // full-line "//" comments are allowed in config files
+        const cleaned = fs
+            .readFileSync(filePath, "utf8")
+            .split("\n")
+            .filter((line) => !/^\s*\/\//.test(line))
+            .join("\n");
+        const data = JSON.parse(cleaned);
         return data && typeof data === "object" ? data : null;
     } catch {
         return null;

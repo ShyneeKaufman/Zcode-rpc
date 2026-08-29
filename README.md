@@ -79,13 +79,45 @@ The daemon hot-reloads config changes. Or run the `/zcode-discord-rpc:setup` sla
 
 Config file location: `~/.config/zcode-discord-rpc/config.json` (Linux/macOS) or `%APPDATA%\zcode-discord-rpc\config.json` (Windows). Both can be overridden with the `ZCODE_DISCORD_RPC_DIR` env var (config and runtime files share that directory then).
 
+A fresh install seeds this file **with comments**. Full-line `//` comments are allowed anywhere in the file and everything hot-reloads within a few seconds.
+
+### Line templates
+
+The two presence lines are templates with variables:
+
+| Variable | Meaning |
+|---|---|
+| `{project}` | Current workspace folder name |
+| `{prompt}` | First line of your last prompt (empty when `show_prompt` is `false`) |
+| `{tool}` | What the agent is doing with tools right now, e.g. `Running a shell command` |
+| `{auto}` | The built-in smart status: prompt → tool → idle text |
+
+```jsonc
+{
+    // line 1 (top)
+    "details_template": "Working on {project}",
+
+    // line 2 (bottom). "{auto}" = classic behavior.
+    // Don't want your prompt visible? Use "{tool}" or any static text:
+    "state_template": "{tool}",
+
+    // used when a template renders empty (e.g. "{prompt}" with no prompt yet)
+    "fallback_text": "ZCode"
+}
+```
+
+### All fields
+
 | Field | Default | Description |
 |---|---|---|
 | `client_id` | *(built-in app)* | Discord Application ID. Empty = the plugin's shared application (zero-setup default). Set your own for custom branding. Hot-reloaded. |
+| `details_template` | `"Working on {project}"` | Line 1 (top) of the presence. |
+| `state_template` | `"{auto}"` | Line 2 (bottom) of the presence. |
+| `fallback_text` | `"ZCode"` | Used when a template renders empty. |
 | `large_image_key` | `"apple-icon"` | Art asset **name** for the large icon (`none` hides it). |
 | `large_image_text` | `"ZCode CLI"` | Tooltip for the large icon. |
 | `small_image_key` | `""` | Art asset name for the small icon (empty = hidden). |
-| `show_prompt` | `true` | Show the first line of your prompt as the status text. |
+| `show_prompt` | `true` | Master switch for the `{prompt}` variable (also hides it from state files). |
 | `max_prompt_len` | `80` | Prompt preview length limit. |
 | `idle_timeout_min` | `60` | Minutes without activity before the presence is cleared. |
 

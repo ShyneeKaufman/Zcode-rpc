@@ -24,10 +24,57 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const PLUGIN_NAME = "zcode-discord-rpc";
-const STATE_VERSION = 1;
+const STATE_VERSION = 2;
+
+// Seeded on first run as a commented config so every field is discoverable.
+// Full-line // comments are allowed anywhere in the config file.
+const CONFIG_TEMPLATE = `// zcode-discord-rpc configuration.
+// Full-line "//" comments are allowed. Changes hot-reload (a few seconds).
+//
+// AVAILABLE VARIABLES for the templates below:
+//   {project} — current workspace folder name
+//   {prompt}  — first line of your last prompt (hidden when show_prompt is false)
+//   {tool}    — what the agent is doing with tools right now, e.g. "Running a shell command"
+//   {auto}    — the built-in smart status (prompt -> tool -> idle text)
+// If a template renders empty, fallback_text is used instead.
+{
+    // Discord application id shown as the "playing ..." title.
+    // Empty = the plugin's built-in shared application (zero-setup default).
+    "client_id": "",
+
+    // Line 1 (top) of the presence.
+    "details_template": "Working on {project}",
+
+    // Line 2 (bottom) of the presence.
+    // "{auto}" keeps the classic behavior; use "{tool}" or static text to hide your prompt.
+    "state_template": "{auto}",
+
+    // Used when a template renders empty (e.g. "{prompt}" with no prompt yet).
+    "fallback_text": "ZCode",
+
+    // Name of the art asset uploaded in your Discord application for the big icon.
+    "large_image_key": "apple-icon",
+    "large_image_text": "ZCode CLI",
+
+    // Small icon asset name; empty = hidden.
+    "small_image_key": "",
+
+    // Show the first line of your prompt as part of the status.
+    "show_prompt": true,
+
+    // Prompt preview length limit (characters).
+    "max_prompt_len": 80,
+
+    // Minutes without activity before the presence is cleared.
+    "idle_timeout_min": 60
+}
+`;
 
 const DEFAULT_CONFIG = {
     client_id: "", // empty = built-in shared application (zero-setup default)
+    details_template: "Working on {project}",
+    state_template: "{auto}",
+    fallback_text: "ZCode",
     large_image_key: "apple-icon",
     large_image_text: "ZCode CLI",
     small_image_key: "",
@@ -74,9 +121,27 @@ function resolveDirs() {
 
 function readJson(filePath) {
     try {
-        return JSON.parse(fs.readFileSync(filePath, "utf8"));
+        // full-line "//" comments are allowed in config files
+        const cleaned = fs
+            .readFileSync(filePath, "utf8")
+            .split("\n")
+            .filter((line) => !/^\s*\/\//.test(line))
+            .join("\n");
+        return JSON.parse(cleaned);
     } catch {
         return null;
+    }
+}
+
+function writeTextIfChanged(filePath, contents) {
+    try {
+        if (fs.existsSync(filePath) && fs.readFileSync(filePath, "utf8") === contents) return;
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
+        const tmp = `${filePath}.tmp.${process.pid}`;
+        fs.writeFileSync(tmp, contents);
+        fs.renameSync(tmp, filePath);
+    } catch (exc) {
+        log(`cannot write ${path.basename(filePath)}: ${exc.message}`);
     }
 }
 
@@ -139,54 +204,81 @@ function ensureDaemon(runtimeDir) {
     }
 }
 
-function activityFor(event, payload, config) {
+function firstLine(text) {
+    return (text.split("\n").find((line) => line.trim().length > 0) ?? "").trim();
+}
+
+function substitute(template, vars) {
+    return template
+        .replace(/\{project\}/g, vars.project)
+        .replace(/\{prompt\}/g, vars.prompt)
+        .replace(/\{tool\}/g, vars.tool)
+        .replace(/\{auto\}/g, vars.auto)
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function buildPresence(event, payload, config, prevState) {
     const cwd = payload.cwd || process.cwd();
     const project = path.basename(cwd) || cwd;
-    const details = `Working on ${project}`;
+    const toolName = String(payload.tool_name || payload.toolName || "").trim();
+    const limit = Number(config.max_prompt_len) || 80;
 
-    if (event === "SessionStart") {
-        const source = payload.source || "startup";
-        const text = {
-            startup: "Ready to code",
-            resume: "Session resumed",
-            clear: "Session cleared",
-            compact: "Session compacted",
-        }[source] ?? "Ready to code";
-        return { reset: true, state: "idle", text, details };
-    }
+    // dynamic variable values for this event; {auto} = the classic smart status
+    let prompt = config.show_prompt === false ? "" : String(prevState.prompt || "");
+    let tool = String(prevState.tool || "");
+    let auto = "";
+    let idle = false;
 
-    if (event === "UserPromptSubmit") {
-        if (config.show_prompt !== false) {
-            const prompt = String(payload.prompt || payload.user_prompt || "");
-            const firstLine = prompt.split("\n").find((l) => l.trim().length > 0) ?? "";
-            if (firstLine) {
-                const limit = Number(config.max_prompt_len) || 80;
-                return { state: "working", text: truncate(firstLine, limit), details };
-            }
+    switch (event) {
+        case "SessionStart":
+            prompt = "";
+            tool = "";
+            auto =
+                {
+                    startup: "Ready to code",
+                    resume: "Session resumed",
+                    clear: "Session cleared",
+                    compact: "Session compacted",
+                }[payload.source || "startup"] ?? "Ready to code";
+            idle = true;
+            break;
+        case "UserPromptSubmit": {
+            prompt =
+                config.show_prompt === false
+                    ? ""
+                    : truncate(firstLine(String(payload.prompt || payload.user_prompt || "")), limit);
+            tool = "";
+            auto = prompt || "Thinking…";
+            break;
         }
-        return { state: "working", text: "Thinking…", details };
+        case "PreToolUse":
+            tool = TOOL_VERBS[toolName] ?? `Using ${toolName || "a tool"}`;
+            auto = tool;
+            break;
+        case "PostToolUseFailure":
+            tool = `Fixing an error from ${toolName || "a tool"}`;
+            auto = tool;
+            break;
+        case "PermissionRequest":
+            tool = `Waiting for permission: ${toolName || "action"}`;
+            auto = tool;
+            break;
+        case "Stop":
+            tool = "";
+            auto = "Waiting for your input";
+            idle = true;
+            break;
+        default:
+            return null;
     }
 
-    if (event === "PreToolUse") {
-        const tool = String(payload.tool_name || payload.toolName || "").trim();
-        return { state: "working", text: TOOL_VERBS[tool] ?? `Using ${tool || "a tool"}`, details };
-    }
+    const vars = { project, prompt, tool, auto };
+    const fallback = String(config.fallback_text || "ZCode");
+    const details = substitute(String(config.details_template ?? "Working on {project}"), vars) || fallback;
+    const text = substitute(String(config.state_template ?? "{auto}"), vars) || fallback;
 
-    if (event === "PostToolUseFailure") {
-        const tool = String(payload.tool_name || payload.toolName || "").trim();
-        return { state: "working", text: `Fixing an error from ${tool || "a tool"}`, details };
-    }
-
-    if (event === "PermissionRequest") {
-        const tool = String(payload.tool_name || payload.toolName || "").trim();
-        return { state: "working", text: `Waiting for permission: ${tool || "action"}`, details };
-    }
-
-    if (event === "Stop") {
-        return { state: "idle", text: "Waiting for your input", details };
-    }
-
-    return null;
+    return { idle, prompt, tool, details, text };
 }
 
 function fingerprint(entry) {
@@ -212,7 +304,7 @@ async function main() {
     let config = readJson(configPath);
     if (!config || typeof config !== "object") config = {};
     if (!fs.existsSync(configPath)) {
-        writeJsonIfChanged(configPath, { ...DEFAULT_CONFIG });
+        writeTextIfChanged(configPath, CONFIG_TEMPLATE);
     }
 
     try {
@@ -223,14 +315,14 @@ async function main() {
         );
     } catch { /* tracing is best-effort */ }
 
-    const activity = activityFor(event, payload, config);
+    const state = readJson(path.join(runtimeDir, "state.json")) ?? {};
+    const activity = buildPresence(event, payload, config, state);
     if (!activity) return;
 
-    const state = readJson(path.join(runtimeDir, "state.json")) ?? {};
     const sessionId = String(payload.session_id || state.session_id || "");
     const now = Date.now() / 1000;
     const startedAt =
-        activity.reset || !sessionId || sessionId !== String(state.session_id || "")
+        event === "SessionStart" || !sessionId || sessionId !== String(state.session_id || "")
             ? Math.floor(now)
             : Math.floor(Number(state.started_at) || now);
 
@@ -238,9 +330,11 @@ async function main() {
         version: STATE_VERSION,
         session_id: sessionId,
         started_at: startedAt,
-        state: activity.state,
+        state: activity.idle ? "idle" : "working",
         text: activity.text,
         details: activity.details,
+        prompt: activity.prompt,
+        tool: activity.tool,
         ts: now,
     };
 
