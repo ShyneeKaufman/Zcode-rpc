@@ -91,7 +91,7 @@ The two presence lines are templates with variables:
 | `{prompt}` | First line of your last prompt (empty when `show_prompt` is `false`) |
 | `{tool}` | What the agent is doing with tools right now, e.g. `Running a shell command` |
 | `{task}` | Current in-progress task name from the agent's todo list |
-| `{auto}` | The built-in smart status: prompt → tool → idle text |
+| `{auto}` | The built-in smart status: prompt → tool → the current task while idle |
 
 ```jsonc
 {

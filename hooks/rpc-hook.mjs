@@ -242,16 +242,10 @@ function buildPresence(event, payload, config, prevState) {
 
     switch (event) {
         case "SessionStart":
+            // keep {task} across sessions: you are still "in" that task
             prompt = "";
             tool = "";
-            task = "";
-            auto =
-                {
-                    startup: "Ready to code",
-                    resume: "Session resumed",
-                    clear: "Session cleared",
-                    compact: "Session compacted",
-                }[payload.source || "startup"] ?? "Ready to code";
+            auto = task || "Ready to code";
             idle = true;
             break;
         case "UserPromptSubmit": {
