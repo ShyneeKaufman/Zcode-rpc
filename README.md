@@ -35,7 +35,18 @@ ZCode hooks ──► hooks/rpc-hook.mjs ──► state.json ──► bin/rpc-
 
 ## Install
 
-Clone this repository, then register it as a local plugin dir in the ZCode user config `~/.zcode/cli/config.json` (on Windows: `%APPDATA%\.zcode\cli\config.json`):
+### Option A — from the Plugins UI (recommended)
+
+1. In ZCode open **Settings → Plugins → "+ New"** (Add marketplace).
+2. Paste this repository: `z3ntorra/zcode-discord-rpc` (any GitHub `owner/repo`, git URL, or local path works).
+3. The plugin appears under the marketplace's plugin list → **Install** → enable it.
+4. Restart your ZCode session (or just switch sessions) so the hooks register.
+
+If you previously installed manually (option B), remove the `plugins.dirs` entry from the config so the two copies don't duplicate.
+
+### Option B — manual (good for development)
+
+Clone this repository, then register the plugin directory itself in the ZCode user config `~/.zcode/cli/config.json` (on Windows: `%APPDATA%\.zcode\cli\config.json`):
 
 ```json
 {
@@ -45,7 +56,7 @@ Clone this repository, then register it as a local plugin dir in the ZCode user 
 }
 ```
 
-Verify: `zcode plugins list` should show `zcode-discord-rpc@inline [enabled]` with `hooks: 6`. Restart your ZCode session (or just switch sessions) so the hooks register.
+Verify either way: `zcode plugins list` should show `zcode-discord-rpc` enabled with `hooks: 6`.
 
 **That's it** — the plugin ships with a shared Discord application, so presence works immediately: no application setup, no developer portal, nothing. Start a session and check your profile.
 
