@@ -35,6 +35,7 @@ const CONFIG_TEMPLATE = `// zcode-discord-rpc configuration.
 //   {project} — current workspace folder name
 //   {prompt}  — first line of your last prompt (hidden when show_prompt is false)
 //   {tool}    — what the agent is doing with tools right now, e.g. "Running a shell command"
+//   {task}    — current in-progress task name from the todo list
 //   {auto}    — the built-in smart status (prompt -> tool -> idle text)
 // If a template renders empty, fallback_text is used instead.
 {
@@ -213,6 +214,7 @@ function substitute(template, vars) {
         .replace(/\{project\}/g, vars.project)
         .replace(/\{prompt\}/g, vars.prompt)
         .replace(/\{tool\}/g, vars.tool)
+        .replace(/\{task\}/g, vars.task)
         .replace(/\{auto\}/g, vars.auto)
         .replace(/\s+/g, " ")
         .trim();
@@ -227,13 +229,22 @@ function buildPresence(event, payload, config, prevState) {
     // dynamic variable values for this event; {auto} = the classic smart status
     let prompt = config.show_prompt === false ? "" : String(prevState.prompt || "");
     let tool = String(prevState.tool || "");
+    let task = truncate(String(prevState.task || ""), limit);
     let auto = "";
     let idle = false;
+
+    // {task}: the current in-progress todo, taken from TodoWrite updates
+    if (toolName === "TodoWrite") {
+        const todos = Array.isArray(payload.tool_input?.todos) ? payload.tool_input.todos : [];
+        const current = todos.find((t) => t?.status === "in_progress") ?? todos.find((t) => t?.status !== "completed");
+        task = current?.content ? truncate(String(current.content), limit) : task;
+    }
 
     switch (event) {
         case "SessionStart":
             prompt = "";
             tool = "";
+            task = "";
             auto =
                 {
                     startup: "Ready to code",
@@ -273,16 +284,16 @@ function buildPresence(event, payload, config, prevState) {
             return null;
     }
 
-    const vars = { project, prompt, tool, auto };
+    const vars = { project, prompt, tool, task, auto };
     const fallback = String(config.fallback_text || "ZCode");
     const details = substitute(String(config.details_template ?? "Working on {project}"), vars) || fallback;
     const text = substitute(String(config.state_template ?? "{auto}"), vars) || fallback;
 
-    return { idle, prompt, tool, details, text };
+    return { idle, prompt, tool, task, details, text };
 }
 
 function fingerprint(entry) {
-    return [entry.session_id, entry.started_at, entry.state, entry.text, entry.details].join("\u0000");
+    return [entry.session_id, entry.started_at, entry.state, entry.text, entry.details, entry.prompt, entry.task].join("\u0000");
 }
 
 async function main() {
@@ -335,6 +346,7 @@ async function main() {
         details: activity.details,
         prompt: activity.prompt,
         tool: activity.tool,
+        task: activity.task,
         ts: now,
     };
 
