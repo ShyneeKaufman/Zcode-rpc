@@ -1,19 +1,18 @@
 ---
-description: Set up Discord Rich Presence for ZCode (help create a Discord app and configure client_id)
+description: Configure Discord Rich Presence branding for zcode-discord-rpc (optional custom application)
 ---
 
-Help the user finish configuring the `zcode-discord-rpc` plugin. Respond in the user's language.
+The plugin works out of the box with a built-in shared Discord application — no setup required. This command is only for users who want **custom branding** (their own application name and art). Respond in the user's language.
 
 Steps:
 
-1. Check the current configuration file at `~/.config/zcode-discord-rpc/config.json` and show which fields are set (never print the full `client_id`, mask it).
-2. Explain that Rich Presence needs a Discord application ID. Guide the user through it:
-   - Open https://discord.com/developers/applications and click **New Application**;
-   - Name it (e.g. "ZCode" — this name is shown on the Discord profile);
-   - Copy the **Application ID** from the General Information page.
-3. Offer to write the ID into `~/.config/zcode-discord-rpc/config.json` as `client_id` (ask the user to paste it; do not guess it).
-4. Optionally upload an image asset named `zcode` in the application's **Rich Presence → Art Assets** page — it becomes the large cover image. Without it the presence works but shows no image.
-5. Make sure the Discord desktop app is running, then verify the daemon: `cat ~/.cache/zcode-discord-rpc/daemon.log` (or the log path printed by the plugin README). The log should show `connected to Discord`.
-6. If `client_id` was just set while a session was already running, tell the user it will be picked up automatically within a few seconds, or after the next prompt in the worst case.
+1. Check the current configuration file (`~/.config/zcode-discord-rpc/config.json` on Linux/macOS, `%APPDATA%\zcode-discord-rpc\config.json` on Windows) and show which fields are set (mask the `client_id` value).
+2. If the user wants custom branding, guide them:
+   - Open https://discord.com/developers/applications → **New Application** → name it (this name is shown on the profile);
+   - Copy the **Application ID** from General Information;
+   - Write it into `client_id` in the config file (ask the user to paste it; never guess it);
+   - Optionally upload art under **Rich Presence → Art Assets** and put the asset **name** into `large_image_key` (assets are referenced by name, and Discord clients cache asset lists per session — restart Discord after uploading).
+3. Changes hot-reload: the daemon re-resolves `client_id` and assets within a few seconds, no restart needed.
+4. Verify via `~/.cache/zcode-discord-rpc/daemon.log` (`%LOCALAPPDATA%\zcode-discord-rpc\daemon.log` on Windows) — expect a `client_id changed ... reconnecting` line followed by `connected to Discord`.
 
 Arguments: $ARGUMENTS

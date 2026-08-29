@@ -19,6 +19,10 @@ import path from "node:path";
 import os from "node:os";
 
 const PLUGIN_NAME = "zcode-discord-rpc";
+// Public "ZCode" Discord application used as the zero-setup default, so a
+// fresh install works without creating an own application. Users can point
+// config.client_id at their own application for custom branding.
+const BUILT_IN_CLIENT_ID = "1543388667379449978";
 const OP = { HANDSHAKE: 0, FRAME: 1, CLOSE: 2, PING: 3, PONG: 4 };
 
 const POLL_INTERVAL = 1000;
@@ -311,6 +315,8 @@ async function main() {
         // exclusive create: lose cleanly if a parallel hook spawned first
         fs.writeFileSync(pidFile, String(process.pid), { flag: "wx" });
     } catch {
+        // the winner may not have flushed its pid yet — give it a moment
+        await sleep(100);
         if (otherDaemonAlive(pidFile)) return;
         fs.writeFileSync(pidFile, String(process.pid));
     }
@@ -329,7 +335,6 @@ async function main() {
     let lastSend = 0;
     let handshakeFailedAt = 0;
     let lastEventTs = 0;
-    let warnedNoClient = false;
     let lastConnectError = null;
 
     log(`daemon started (pid ${process.pid}, runtime ${runtimeDir})`);
@@ -350,7 +355,7 @@ async function main() {
                 break;
             }
 
-            const clientId = String(config.client_id || "").trim();
+            const clientId = String(config.client_id || "").trim() || BUILT_IN_CLIENT_ID;
 
             if (ipc && !ipc.closed && activeClientId !== clientId) {
                 log(`client_id changed (${JSON.stringify(activeClientId)} -> ${JSON.stringify(clientId)}), reconnecting`);
@@ -370,15 +375,6 @@ async function main() {
             }
 
             if (!ipc || ipc.closed) {
-                if (!clientId) {
-                    if (!warnedNoClient) {
-                        log(`client_id is not set — edit ${path.join(configDir, "config.json")} (see README)`);
-                        warnedNoClient = true;
-                    }
-                    await sleep(POLL_INTERVAL);
-                    continue;
-                }
-                warnedNoClient = false;
                 if (now - handshakeFailedAt < HANDSHAKE_FAIL_BACKOFF) {
                     await sleep(POLL_INTERVAL);
                     continue;

@@ -27,8 +27,8 @@ const PLUGIN_NAME = "zcode-discord-rpc";
 const STATE_VERSION = 1;
 
 const DEFAULT_CONFIG = {
-    client_id: "",
-    large_image_key: "zcode",
+    client_id: "", // empty = built-in shared application (zero-setup default)
+    large_image_key: "apple-icon",
     large_image_text: "ZCode CLI",
     small_image_key: "",
     show_prompt: true,

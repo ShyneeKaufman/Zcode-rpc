@@ -47,19 +47,22 @@ Clone this repository, then register it as a local plugin dir in the ZCode user 
 
 Verify: `zcode plugins list` should show `zcode-discord-rpc@inline [enabled]` with `hooks: 6`. Restart your ZCode session (or just switch sessions) so the hooks register.
 
-## Setup (one manual step)
+**That's it** — the plugin ships with a shared Discord application, so presence works immediately: no application setup, no developer portal, nothing. Start a session and check your profile.
 
-Rich Presence requires a Discord **Application ID** — it is what Discord displays as the "playing …" title:
+## Optional: your own application (custom branding)
 
-1. Open the [Discord Developer Portal](https://discord.com/developers/applications) → **New Application** → name it (e.g. "ZCode" — this name appears on your profile).
-2. Copy the **Application ID** from the General Information page.
-3. Put it into the config file and restart Discord once (the client caches the asset list per session).
+Want a different title or your own art? Create an application in the [Discord Developer Portal](https://discord.com/developers/applications) (2 minutes), copy its **Application ID**, and set it in the config:
 
-Or run the `/zcode-discord-rpc:setup` slash command in ZCode and let the agent walk you through it.
+```json
+{
+  "client_id": "your-application-id",
+  "large_image_key": "your-asset-name"
+}
+```
 
-Optional: upload an image under **Rich Presence → Art Assets** in the developer portal — its **key** goes into `large_image_key`. Important: the asset is referenced **by name** and Discord clients cache asset lists per session, so after uploading a new asset restart Discord once or the icon shows as "?".
+The daemon hot-reloads config changes. Or run the `/zcode-discord-rpc:setup` slash command and let the agent walk you through it.
 
-> **Vesktop/Vencord users:** Vesktop's built-in arRPC bridge accepts any application ID, but the ID still must belong to a real application for the presence to display. The official Discord client always requires a real ID.
+> **Vesktop/Vencord users:** Vesktop's built-in arRPC bridge works with the shared application ID out of the box, same as the official client. One quirk: Discord clients cache the asset list per session, so after the plugin ships a new asset (or you upload one), restart Discord once or the icon may show as "?".
 
 ## Configuration
 
@@ -67,8 +70,8 @@ Config file location: `~/.config/zcode-discord-rpc/config.json` (Linux/macOS) or
 
 | Field | Default | Description |
 |---|---|---|
-| `client_id` | `""` | Discord Application ID. Empty = presence disabled. Hot-reloaded. |
-| `large_image_key` | `"zcode"` | Art asset **name** for the large icon (`none` hides it). |
+| `client_id` | *(built-in app)* | Discord Application ID. Empty = the plugin's shared application (zero-setup default). Set your own for custom branding. Hot-reloaded. |
+| `large_image_key` | `"apple-icon"` | Art asset **name** for the large icon (`none` hides it). |
 | `large_image_text` | `"ZCode CLI"` | Tooltip for the large icon. |
 | `small_image_key` | `""` | Art asset name for the small icon (empty = hidden). |
 | `show_prompt` | `true` | Show the first line of your prompt as the status text. |
@@ -81,7 +84,7 @@ Runtime files: `~/.cache/zcode-discord-rpc/` (Linux/macOS) or `%LOCALAPPDATA%\zc
 
 - `tail -f ~/.cache/zcode-discord-rpc/daemon.log` (or the Windows path above) — expect `daemon started` and `connected to Discord`. Connect failures and RPC errors are logged here.
 - `hook-trace.log` shows every hook invocation — useful to verify hooks fire.
-- Presence missing entirely: check that `client_id` is a **real** application ID (Discord silently drops unknown IDs), and that `zcode plugins list` shows the plugin enabled with `hooks: 6`.
+- Presence missing entirely: check `daemon.log` for connect errors, and that `zcode plugins list` shows the plugin enabled with `hooks: 6`.
 - Icon shows as "?": restart Discord after uploading the asset, and make sure `large_image_key` is the asset **name** (not its numeric ID).
 - Stop the daemon: `kill $(cat <runtime dir>/daemon.pid)` — it respawns on the next session event.
 - Manual hook test:
