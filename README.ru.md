@@ -116,7 +116,7 @@ Running a shell command      ← живая активность агента
 | `state_template` | `"{auto}"` | Строка 2 (нижняя). |
 | `fallback_text` | `"ZCode"` | Используется, когда шаблон после подстановки пустой. |
 | `large_image_key` | `"apple-icon"` | **Имя ассета** для большой иконки (`none` — скрыть). |
-| `large_image_text` | `"ZCode CLI"` | Подпись большой иконки. |
+| `large_image_text` | `"ZCode"` | Подпись большой иконки. |
 | `small_image_key` | `""` | Имя ассета малой иконки (пусто — скрыта). |
 | `show_prompt` | `true` | Главный выключатель переменной `{prompt}` (прячет её и из state-файлов). |
 | `max_prompt_len` | `80` | Лимит длины превью промпта. |

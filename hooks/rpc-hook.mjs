@@ -55,7 +55,7 @@ const CONFIG_TEMPLATE = `// zcode-discord-rpc configuration.
 
     // Name of the art asset uploaded in your Discord application for the big icon.
     "large_image_key": "apple-icon",
-    "large_image_text": "ZCode CLI",
+    "large_image_text": "ZCode",
 
     // Small icon asset name; empty = hidden.
     "small_image_key": "",
@@ -77,7 +77,7 @@ const DEFAULT_CONFIG = {
     state_template: "{auto}",
     fallback_text: "ZCode",
     large_image_key: "apple-icon",
-    large_image_text: "ZCode CLI",
+    large_image_text: "ZCode",
     small_image_key: "",
     show_prompt: true,
     max_prompt_len: 80,

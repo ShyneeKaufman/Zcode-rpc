@@ -116,7 +116,7 @@ The two presence lines are templates with variables:
 | `state_template` | `"{auto}"` | Line 2 (bottom) of the presence. |
 | `fallback_text` | `"ZCode"` | Used when a template renders empty. |
 | `large_image_key` | `"apple-icon"` | Art asset **name** for the large icon (`none` hides it). |
-| `large_image_text` | `"ZCode CLI"` | Tooltip for the large icon. |
+| `large_image_text` | `"ZCode"` | Tooltip for the large icon. |
 | `small_image_key` | `""` | Art asset name for the small icon (empty = hidden). |
 | `show_prompt` | `true` | Master switch for the `{prompt}` variable (also hides it from state files). |
 | `max_prompt_len` | `80` | Prompt preview length limit. |
