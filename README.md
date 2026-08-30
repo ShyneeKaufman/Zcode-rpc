@@ -2,6 +2,9 @@
 
 [Русская версия](README.ru.md)
 
+> [!NOTE]
+> **Fully vibecoded** 🤖 — written end-to-end by an AI agent (ZCode on GLM) with a human pointing at the screen. Reviewed a little, tested a lot, use at your own discretion.
+
 **Discord Rich Presence for [ZCode](https://z.ai).** Shows your current project and what the agent is doing right now in your Discord profile:
 
 ```
