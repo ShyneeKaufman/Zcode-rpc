@@ -90,13 +90,13 @@ The two presence lines are templates with variables:
 | `{project}` | Current workspace folder name |
 | `{prompt}` | First line of your last prompt (empty when `show_prompt` is `false`) |
 | `{tool}` | What the agent is doing with tools right now, e.g. `Running a shell command` |
-| `{task}` | Current in-progress task name from the agent's todo list |
+| `{task}` | Current ZCode task (chat) title from the sidebar — e.g. `Working on test` |
 | `{auto}` | The built-in smart status: prompt → tool → the current task while idle |
 
 ```jsonc
 {
     // line 1 (top)
-    "details_template": "Working on {project}",
+    "details_template": "Working on {task}",
 
     // line 2 (bottom). "{auto}" = classic behavior.
     // Don't want your prompt visible? Use "{tool}" or any static text:

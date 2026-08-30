@@ -33,10 +33,10 @@ const CONFIG_TEMPLATE = `// zcode-discord-rpc configuration.
 //
 // AVAILABLE VARIABLES for the templates below:
 //   {project} — current workspace folder name
+//   {task}    — current ZCode task (chat) title from the sidebar
 //   {prompt}  — first line of your last prompt (hidden when show_prompt is false)
 //   {tool}    — what the agent is doing with tools right now, e.g. "Running a shell command"
-//   {task}    — current in-progress task name from the todo list
-//   {auto}    — the built-in smart status (prompt -> tool -> idle text)
+//   {auto}    — the built-in smart status (prompt -> tool -> task)
 // If a template renders empty, fallback_text is used instead.
 {
     // Discord application id shown as the "playing ..." title.
@@ -220,24 +220,51 @@ function substitute(template, vars) {
         .trim();
 }
 
+let DatabaseSync = null; // node:sqlite, loaded lazily (experimental warning suppressed)
+
+function lookupTaskTitle(sessionId) {
+    // current ZCode task (chat) title from the app's task index
+    if (!sessionId || typeof DatabaseSync !== "function") return null;
+    try {
+        const dbPath = path.join(os.homedir(), ".zcode", "v2", "tasks-index.sqlite");
+        if (!fs.existsSync(dbPath)) return null;
+        const db = new DatabaseSync(dbPath, { readOnly: true });
+        try {
+            const row = db
+                .prepare("SELECT title FROM tasks WHERE task_id = ? AND deleted = 0 ORDER BY updated_at DESC LIMIT 1")
+                .get(sessionId);
+            return row?.title ? String(row.title).trim() : null;
+        } finally {
+            db.close();
+        }
+    } catch {
+        return null;
+    }
+}
+
 function buildPresence(event, payload, config, prevState) {
     const cwd = payload.cwd || process.cwd();
     const project = path.basename(cwd) || cwd;
+    const sessionId = String(payload.session_id || payload.sessionId || "");
     const toolName = String(payload.tool_name || payload.toolName || "").trim();
     const limit = Number(config.max_prompt_len) || 80;
 
     // dynamic variable values for this event; {auto} = the classic smart status
     let prompt = config.show_prompt === false ? "" : String(prevState.prompt || "");
     let tool = String(prevState.tool || "");
-    let task = truncate(String(prevState.task || ""), limit);
+    // {task}: the current ZCode task (chat) title; falls back to the last
+    // TodoWrite-derived name, then to the project name
+    let task =
+        lookupTaskTitle(sessionId) ??
+        (event === "SessionStart" ? "" : truncate(String(prevState.task || ""), limit));
     let auto = "";
     let idle = false;
 
-    // {task}: the current in-progress todo, taken from TodoWrite updates
-    if (toolName === "TodoWrite") {
+    if (!task && toolName === "TodoWrite") {
+        // legacy fallback: derive a task name from TodoWrite updates
         const todos = Array.isArray(payload.tool_input?.todos) ? payload.tool_input.todos : [];
         const current = todos.find((t) => t?.status === "in_progress") ?? todos.find((t) => t?.status !== "completed");
-        task = current?.content ? truncate(String(current.content), limit) : task;
+        task = current?.content ? truncate(String(current.content), limit) : "";
     }
 
     switch (event) {
@@ -291,6 +318,12 @@ function fingerprint(entry) {
 }
 
 async function main() {
+    // node:sqlite powers the {task} lookup; suppress its experimental warning
+    process.removeAllListeners?.("warning");
+    try {
+        ({ DatabaseSync } = await import("node:sqlite"));
+    } catch { /* older Node: {task} falls back to TodoWrite/project */ }
+
     let raw = "";
     for await (const chunk of process.stdin) raw += chunk;
     let payload = {};
