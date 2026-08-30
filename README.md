@@ -38,7 +38,7 @@ ZCode hooks ──► hooks/rpc-hook.mjs ──► state.json ──► bin/rpc-
 ### Option A — from the Plugins UI (recommended)
 
 1. In ZCode open **Settings → Plugins → "+ New"** (Add marketplace).
-2. Paste this repository: `z3ntorra/zcode-discord-rpc` (any GitHub `owner/repo`, git URL, or local path works).
+2. Paste this repository: `ShyneeKaufman/zcode-rpc` (any GitHub `owner/repo`, git URL, or local path works).
 3. The plugin appears under the marketplace's plugin list → **Install** → enable it.
 4. Restart your ZCode session (or just switch sessions) so the hooks register.
 

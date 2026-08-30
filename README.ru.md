@@ -38,7 +38,7 @@ Running a shell command      ← живая активность агента
 ### Вариант A — через UI плагинов (рекомендуется)
 
 1. В ZCode открой **Settings → Plugins → «+ New»** (Add marketplace).
-2. Вставь этот репозиторий: `z3ntorra/zcode-discord-rpc` (подойдёт любой GitHub `owner/repo`, git-URL или локальный путь).
+2. Вставь этот репозиторий: `ShyneeKaufman/zcode-rpc` (подойдёт любой GitHub `owner/repo`, git-URL или локальный путь).
 3. Плагин появится в списке маркетплейса → **Install** → включи.
 4. Перезапусти сессию ZCode (или просто переключи), чтобы хуки зарегистрировались.
 
