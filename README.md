@@ -7,6 +7,8 @@
 
 **Discord Rich Presence for [ZCode](https://z.ai).** Shows your current project and what the agent is doing right now in your Discord profile:
 
+![Discord Rich Presence example](docs/presence.png)
+
 ```
 Playing ZCode
 Working on my-project        ← workspace name
@@ -14,7 +16,7 @@ Running a shell command      ← live agent activity
 44:12 elapsed                ← session timer
 ```
 
-Activities reported: thinking (with an optional prompt preview), running tools (Bash, Edit, Read, Grep, Agent, …), waiting for permission, fixing tool errors, and idle ("Waiting for your input") between prompts.
+Activities reported: thinking (with an optional prompt preview), running tools (Bash, Edit, Read, Grep, Agent, …), waiting for permission, fixing tool errors, and idle between prompts (shows the current task name).
 
 ## How it works
 
@@ -98,15 +100,15 @@ The two presence lines are templates with variables:
 
 ```jsonc
 {
-    // line 1 (top)
-    "details_template": "Working on {task}",
+    // line 1 (top): just the name of the open task
+    "details_template": "{task}",
 
-    // line 2 (bottom). "{auto}" = classic behavior.
-    // Don't want your prompt visible? Use "{tool}" or any static text:
+    // line 2 (bottom): "{auto}" = classic behavior; "{tool}" = tool activity
+    // only (no prompt); empty render -> fallback_text
     "state_template": "{tool}",
 
-    // used when a template renders empty (e.g. "{prompt}" with no prompt yet)
-    "fallback_text": "ZCode"
+    // fallback when a template renders empty (no active tool -> "Idle")
+    "fallback_text": "Idle"
 }
 ```
 
