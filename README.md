@@ -26,7 +26,7 @@ ZCode hooks ──► hooks/rpc-hook.mjs ──► state.json ──► bin/rpc-
 ```
 
 - **Hooks** (`SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUseFailure`, `PermissionRequest`, `Stop`) write a tiny state file on every event.
-- **Daemon** keeps a long-lived connection to Discord's local IPC socket (unix socket on Linux/macOS, named pipe on Windows) and applies presence updates. It reconnects automatically when Discord restarts, re-reads config changes on the fly, sends keepalive pings to detect dead connections, and clears the presence after `idle_timeout_min` minutes of inactivity.
+- **Daemon** keeps a long-lived connection to Discord's local IPC socket (unix socket on Linux/macOS, named pipe on Windows) and applies presence updates. It reconnects automatically when Discord restarts, re-reads config changes on the fly, sends keepalive pings to detect dead connections, switches to `idle_text` after `afk_minutes` without **your** input (even if the agent is still running — overnight too), and clears the presence entirely after `clear_after_min` minutes of total inactivity (`0` = never).
 - Duplicate events are fingerprinted and never re-sent, so Discord is not spammed.
 - `tool_input` contents are **never** sent to Discord (secret-safe). The prompt preview is optional and truncated.
 
@@ -125,7 +125,9 @@ The two presence lines are templates with variables:
 | `small_image_key` | `""` | Art asset name for the small icon (empty = hidden). |
 | `show_prompt` | `true` | Master switch for the `{prompt}` variable (also hides it from state files). |
 | `max_prompt_len` | `80` | Prompt preview length limit. |
-| `idle_timeout_min` | `60` | Minutes without activity before the presence is cleared. |
+| `afk_minutes` | `10` | Minutes without your input before the status switches to `idle_text` — even if the agent keeps running. |
+| `idle_text` | `"Idle"` | Line 2 text used while you are AFK. |
+| `clear_after_min` | `0` | Minutes of total inactivity before the presence is cleared entirely (`0` = never). |
 
 Runtime files: `~/.cache/zcode-discord-rpc/` (Linux/macOS) or `%LOCALAPPDATA%\zcode-discord-rpc\` (Windows): `state.json`, `daemon.pid`, `daemon.log`, `hook-trace.log`.
 
@@ -145,6 +147,7 @@ Runtime files: `~/.cache/zcode-discord-rpc/` (Linux/macOS) or `%LOCALAPPDATA%\zc
 ## Limitations
 
 - Multiple parallel ZCode sessions share one presence (last event wins).
+- Idle is based on **your input activity**, not real window-focus tracking — an unfocused window has no input, so it goes Idle anyway.
 - The "playing" title is your Discord application's name.
 - Hooks register on session start/resume — after installing the plugin mid-session, switch or restart the session.
 - The `Stop` hook of a session started before v1.1.0 may still reference the old Python hook; a compatibility shim (`hooks/rpc-hook.py`) is included and safely delegates to the Node implementation.

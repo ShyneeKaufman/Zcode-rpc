@@ -60,14 +60,22 @@ const CONFIG_TEMPLATE = `// zcode-discord-rpc configuration.
     // Small icon asset name; empty = hidden.
     "small_image_key": "",
 
+    // Minutes without YOUR input (prompt/session events) before the status
+    // switches to idle_text — even if the agent is still running.
+    "afk_minutes": 10,
+
+    // Line 2 text used while you are AFK.
+    "idle_text": "Idle",
+
+    // Minutes without ANY activity before the presence is cleared entirely.
+    // 0 = never clear (the "Idle" status stays, e.g. overnight).
+    "clear_after_min": 0,
+
     // Show the first line of your prompt as part of the status.
     "show_prompt": true,
 
     // Prompt preview length limit (characters).
-    "max_prompt_len": 80,
-
-    // Minutes without activity before the presence is cleared.
-    "idle_timeout_min": 60
+    "max_prompt_len": 80
 }
 `;
 
@@ -81,7 +89,9 @@ const DEFAULT_CONFIG = {
     small_image_key: "",
     show_prompt: true,
     max_prompt_len: 80,
-    idle_timeout_min: 60,
+    afk_minutes: 10,
+    idle_text: "Idle",
+    clear_after_min: 0,
 };
 
 const TOOL_VERBS = {
@@ -364,6 +374,10 @@ async function main() {
             ? Math.floor(now)
             : Math.floor(Number(state.started_at) || now);
 
+    // user_ts = last moment the USER was active (prompt / session start / turn
+    // end); tool events don't count, so AFK kicks in even while the agent runs
+    const userActive = event === "SessionStart" || event === "UserPromptSubmit" || event === "Stop";
+
     const newState = {
         version: STATE_VERSION,
         session_id: sessionId,
@@ -374,6 +388,7 @@ async function main() {
         prompt: activity.prompt,
         tool: activity.tool,
         task: activity.task,
+        user_ts: userActive ? now : Number(state.user_ts || state.ts || now),
         ts: now,
     };
 

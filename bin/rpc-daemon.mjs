@@ -269,10 +269,10 @@ function otherDaemonAlive(pidFile) {
     }
 }
 
-function buildActivity(state, config) {
+function buildActivity(state, config, afk) {
     const activity = {
         details: String(state.details || "ZCode").slice(0, DETAILS_LIMIT),
-        state: String(state.text || "").slice(0, STATE_LIMIT),
+        state: String(afk ? (config.idle_text || "Idle") : state.text || "").slice(0, STATE_LIMIT),
         timestamps: { start: Math.floor(Number(state.started_at) || Date.now() / 1000) },
         instance: false,
     };
@@ -291,8 +291,8 @@ function buildActivity(state, config) {
     return activity;
 }
 
-function fingerprintOf(state) {
-    return [state.session_id, state.started_at, state.state, state.text, state.details].join("\u0000");
+function fingerprintOf(state, afk) {
+    return [state.session_id, state.started_at, state.state, state.text, state.details, state.prompt, state.task, afk ? "afk" : "active"].join("\u0000");
 }
 
 function sleep(ms) {
@@ -352,9 +352,12 @@ async function main() {
 
             const eventTs = Number(state?.ts) || 0;
             if (eventTs) lastEventTs = Math.max(lastEventTs, eventTs * 1000);
-            const idleMinutes = Number(config.idle_timeout_min) || 60;
-            if (lastEventTs && now - lastEventTs > idleMinutes * 60000) {
-                log(`idle for ${idleMinutes.toFixed(0)} min, clearing presence and exiting`);
+            // full clear only after clear_after_min of zero activity (0 = never);
+            // before that, the status just shows idle_text while the user is AFK
+            const userTs = Number(state?.user_ts || state?.ts || 0) * 1000;
+            const clearAfter = Number(config.clear_after_min ?? 0);
+            if (clearAfter > 0 && lastEventTs && now - lastEventTs > clearAfter * 60000) {
+                log(`no activity for ${clearAfter.toFixed(0)} min, clearing presence and exiting`);
                 if (ipc && !ipc.closed) {
                     try { ipc.sendActivity(null); } catch { /* best effort */ }
                 }
@@ -376,8 +379,11 @@ async function main() {
             let fingerprint = null;
             let activity = null;
             if (state?.version) {
-                fingerprint = fingerprintOf(state);
-                activity = buildActivity(state, config);
+                // AFK = no user input for afk_minutes, even while the agent runs
+                const afkMinutes = Number(config.afk_minutes ?? 10);
+                const afk = Boolean(userTs) && now - userTs > afkMinutes * 60000;
+                fingerprint = fingerprintOf(state, afk);
+                activity = buildActivity(state, config, afk);
             }
 
             if (!ipc || ipc.closed) {
